@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Filmes</title>
+  <link rel="stylesheet" href="./css/filmes.css" />
+</head>
+
+<body>
+
+  <header class="cabecalho">
+    <div>
+      <h1 class="cabecalho__titulo"><span id="nome-do-sistema">—</span></h1>
+      <p class="cabecalho__subtitulo"><span id="versao">—</span> · <span id="data-de-hoje">—</span></p>
+    </div>
+  </header>
+
+  <main>
+    <!--Aqui é onde fica os blocos com os números dando uma visibilidade fácil pro usuario-->
+    <ul class="estatisticas">
+      <li class="estatistica"><span class="estatistica__numero" id="total">0</span><span
+          class="estatistica__rotulo">Total</span></li>
+      <li class="estatistica"><span class="estatistica__numero" id="assistidos">0</span><span
+          class="estatistica__rotulo">Assistidos</span></li>
+      <li class="estatistica"><span class="estatistica__numero" id="assistindo">0</span><span
+          class="estatistica__rotulo">Assistindo</span></li>
+      <li class="estatistica"><span class="estatistica__numero" id="pendentes">0</span><span
+          class="estatistica__rotulo">Para Assistir</span></li>
+    </ul>
+
+    <form class="formulario" id="formulario">
+      <div class="campo">
+        <label class="campo__rotulo" for="titulo">Título</label>
+        <input class="campo__entrada" id="titulo" type="text" autocomplete="off" />
+      </div>
+      <!-- Cada um dessas divs de 'campo' é os dropdonw para ver as opções-->
+      <div class="campo">
+        <label class="campo__rotulo" for="status">Status</label>
+        <select class="campo__selecao" id="status">
+          <option value="quero ver">Quero Ver</option>
+          <option value="assistindo" selected>Assistindo</option>
+          <option value="assisti">Assisti</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label class="campo__rotulo" for="tipo">Tipo</label>
+        <select class="campo__selecao" id="tipo">
+          <option value="filme">Filme</option>
+          <option value="serie" selected>Série</option>
+        </select>
+      </div>
+      <button class="botao botao--primario" type="submit">Cadastrar</button>
+    </form>
+    <!--Isso só aparece no site se der algum erro-->
+    <p class="campo__erro" id="erro" role="alert"></p>
+
+    <!-- O p aqui embaixo deveria mostrar qual é o primeiro que o ussuario deveria ver. Porem, entretanto, toda via, ele não faz nada no nosso. Porque? A resposta é bem simples: A do professor parou de funcionar depois que ele mandou a gente dar os ctrl c + v KKKKKKKKKK embaixo é a lista de verdade. Note que diferente do que a gente tá acostumado, não tem nenhum elemento aqui dando um loop para aparecer mais, tudo é feito pelo javascript no backend e depois é enviada para cá.-->
+    <p class="aviso" id="comece-por" hidden></p>
+    <ul class="lista" id="lista"></ul>
+  </main>
+
+  <!-- Vcs lembram que tem que importar o script, né? -->
+  <script type="module" src="./src/main.ts"></script>
+</body>
+
+</html>
