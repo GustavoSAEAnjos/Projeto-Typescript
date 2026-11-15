@@ -1,95 +1,147 @@
 import { campo, elemento, selecao } from "./dom";
-
-import { midias } from "./dados";
-
 import type { Tipo, Midia, Status } from "./tipos";
-
-import { adicionarMidia, transformar } from "./servicos";
-
-// Essas proxímas 3 linhas com a função elemento() servem apenas para colocar no header do site as informações de nome, versão e a data do dia
+import { buscarMidia, listarMidias } from "./api";
+import { adicionarMidia } from "./servicos";
 
 elemento("nome-do-sistema").textContent = "Filmes";
-
-elemento("versao").textContent = "v0.2.0";
-
+elemento("versao").textContent = "v0.3.0";
 elemento("data-de-hoje").textContent = new Date().toLocaleDateString("pt-BR");
 
-// O estado do programa: a lista que está valendo agora. Em outras palavras, a lista atual com todos os filmes e séries cadastrados.
+let lista: Midia[] = [];
 
-const lista: Midia[] = [...midias];
-
-// Isso cria cada item da lista para que eles sejam jogados no html. Aqui eles viram <li> (list item). Dá pra perceber isso graças a o que aparece depois dos : (dois pontos) que é "HTMLLIElement" ou "HTML LI (List Item) ELement" "Elemento HTML de Item de Lista".
+// Diferente do que a gente fazia com o Flask no técnico, no typescript ele precisa criar o elemento no backend antes de poder mostrar no front.
 
 function criarItem(midia: Midia): HTMLLIElement {
+
+  // Cria o <li> (item lista)
 
   const item = document.createElement("li");
   const classeStatus = midia.status.replace(" ", "-");
   item.className = `midia midia--${classeStatus}`;
 
+  // Cria o <h3>
+
   const titulo = document.createElement("h3");
   titulo.className = "midia_titulo";
-
   titulo.textContent = `#${midia.id} ${midia.titulo}`;
-  const etiqueta = document.createElement("span");
 
+  // Cria a <div> que tem tudo pra ordenar
+
+  const principal = document.createElement("div");
+  principal.className = "midia__principal";
+  principal.append(titulo);
+
+  // Cria a <div> que tem as tags e o tipo
+
+  const meta = document.createElement("div");
+  meta.className = "midia__meta";
+
+  // Cria o <span> que tem o tipo (filme ou série)
+
+  const tipo = document.createElement("span");
+  tipo.className = "etiqueta etiqueta--tipo";
+  tipo.textContent = midia.tipo === "serie" ? "Série" : "Filme";
+
+  // Cria a etiqueta de cada gênero (tag) e adiciona na div meta
+
+  const generos = midia.tags.map((genero) => {
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = genero;
+    return tag;
+  });
+  meta.append(tipo, ...generos);
+  principal.append(meta);
+
+  const etiqueta = document.createElement("span");
   etiqueta.className = `etiqueta etiqueta--${classeStatus}`;
   etiqueta.textContent = midia.status;
 
-  item.append(titulo, etiqueta);
+  item.append(principal, etiqueta);
   return item;
 }
 
-// A função que desenha a tela inteira a partir da lista
+// Toda vez que altera alguma coisa, ele redesenha lista completa.
 
 function desenhar(): void {
-
-  const itens = transformar(lista, criarItem); // Lembra do da função transofrmar() em servicos.ts? Isso aqui usa ele junto da função criarItem(), fazendo com que cada item da lista (em outras palavras cada filme ou serie que está cadastrado) apareça corretamente no index.
-
-  elemento("lista").replaceChildren(...itens); // Tira todos os item da lista e depois coloca eles denovo de forma atualizado.
-
-  // O restante da função é somente para atualizar as estatisticas de total, assistidos, assistindo e pendentes (para assisitir)
-  let assistidos = 0;
-  let assistindo = 0;
-  let pendentes = 0;
-
-  for (const midia of lista) {
-    switch (midia.status) {
-      case "assisti":
-        assistidos++;
-        break;
-      case "assistindo":
-        assistindo++;
-        break;
-      case "quero ver":
-        pendentes++;
-        break;
-    }
+  const itens = lista.map(criarItem);
+  if (itens.length === 0) {
+    const vazio = document.createElement("li");
+    vazio.className = "vazio";
+    vazio.textContent = "Nenhum filme ou série cadastrado no banco.";
+    itens.push(vazio);
   }
-  // Isso aqui que altera os textos de verdade
+  elemento("lista").replaceChildren(...itens);
+
+  const assistidos = lista.filter((midia) => midia.status === "assisti").length;
+  const assistindo = lista.filter((midia) => midia.status === "assistindo").length;
+  const pendentes = lista.filter((midia) => midia.status === "quero ver").length;
   elemento("total").textContent = String(lista.length);
   elemento("assistidos").textContent = String(assistidos);
   elemento("assistindo").textContent = String(assistindo);
   elemento("pendentes").textContent = String(pendentes);
 }
 
-// O formulário: a função abaixo é um CALLBACK — quem a chama é o navegador
+// Isso aqui é uma função que só funciona quando o formulario do frontend é submetido, dessa forma ele envia tudo pra ca e a função faz o que precisa.
 
 elemento("formulario").addEventListener("submit", (evento) => {
-  evento.preventDefault(); // sem isto, a página recarrega e tudo se perde
+  evento.preventDefault();
   elemento("erro").textContent = "";
   try {
     adicionarMidia(lista, {
       titulo: campo("titulo").value.trim(),
-      status: selecao("status").value as Status,
-      tipo: selecao("tipo").value as Tipo,
+      status: lerStatus(selecao("status").value),
+      tipo: lerTipo(selecao("tipo").value),
       tags: [],
     });
     campo("titulo").value = "";
-    desenhar(); // mudou a lista? desenhe de novo
+    desenhar();
   } catch (erro) {
     if (erro instanceof Error) {
       elemento("erro").textContent = erro.message;
+    } else {
+      elemento("erro").textContent = "Não foi possível cadastrar a mídia.";
     }
   }
 });
-desenhar();
+
+// Duas funções para ler o que o usuario coloca e verifica se é valido, se não for ele lança um erro. "A mais o usuario só consegue mandar o que tem nas opções do front bla bla bla" existem maneiras de mandar sem usar o front, só é chato e a maioria dos usuarios não sabem fazer isso.
+
+function lerStatus(valor: string): Status {
+  if (valor === "quero ver" || valor === "assistindo" || valor === "assisti") {
+    return valor;
+  }
+  throw new Error("Selecione um status válido.");
+}
+
+function lerTipo(valor: string): Tipo {
+  if (valor === "filme" || valor === "serie") {
+    return valor;
+  }
+  throw new Error("Selecione um tipo válido.");
+}
+
+// A função iniciar faz o que???? Inicia. Neste caso ela roda antes de tudo na primeria vez para desenhar a lista se não tiver nada.
+
+async function iniciar(): Promise<void> {
+  try {
+    lista = await listarMidias();
+    desenhar();
+
+    const primeiraMidia = lista[0];
+    if (primeiraMidia) {
+      const procurada = await buscarMidia(primeiraMidia.id);
+      if (procurada) {
+        console.info(`Mídia encontrada: ${procurada.titulo}`);
+      }
+    }
+  } catch (erro) {
+    if (erro instanceof Error) {
+      elemento("erro").textContent = erro.message;
+    } else {
+      elemento("erro").textContent = "Ocorreu um erro ao carregar as mídias.";
+    }
+  }
+}
+
+void iniciar();

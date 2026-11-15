@@ -1,19 +1,30 @@
 {
   "name": "Filmes",
   "version": "1.0.0",
-  "description": "",
+  "description": "Catálogo de filmes e séries com TypeScript, Express e MySQL",
   "main": "index.js",
   "scripts": {
-    "dev": "vite",
-    "verificar": "tsc --noEMit",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "concurrently -k -n api,web \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "tsx watch api/src/servidor.ts",
+    "dev:web": "vite",
+    "build": "tsc --noEmit && vite build",
+    "verificar": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.10.0",
+    "concurrently": "^9.2.1",
     "typescript": "^7.0.2",
+    "tsx": "^4.20.6",
     "vite": "^8.3.5"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "mysql2": "^3.15.3"
   }
 }
