@@ -1,48 +1,66 @@
 import { campo, elemento, selecao } from "./dom";
-import type { Tipo, Midia, Status } from "./tipos";
-import { buscarMidia, listarMidias } from "./api";
-import { adicionarMidia } from "./servicos";
+import {
+  alterarStatus,
+  buscarUsuarioAtual,
+  cadastrarMidia,
+  criarConta,
+  encerrarSessao,
+  entrar,
+  guardarSessao,
+  listarGeneros,
+  listarMidias,
+  removerMidia,
+  sessaoAtual,
+} from "./api";
+import type { Midia, Status, Tipo } from "./tipos";
 
 elemento("nome-do-sistema").textContent = "Filmes";
-elemento("versao").textContent = "v0.3.0";
+elemento("versao").textContent = "v0.5.0";
 elemento("data-de-hoje").textContent = new Date().toLocaleDateString("pt-BR");
 
 let lista: Midia[] = [];
 
-// Diferente do que a gente fazia com o Flask no técnico, no typescript ele precisa criar o elemento no backend antes de poder mostrar no front.
+function mostrarErro(erro: unknown): void {
+  elemento("erro").textContent =
+    erro instanceof Error ? erro.message : "Ocorreu um erro inesperado.";
+}
+
+function mostrarErroEntrada(erro: unknown): void {
+  elemento("erro-entrada").textContent =
+    erro instanceof Error ? erro.message : "Ocorreu um erro inesperado.";
+}
+
+function botao(texto: string, classe: string, aoClicar: () => void): HTMLButtonElement {
+  const botao = document.createElement("button");
+  botao.type = "button";
+  botao.className = `botao botao--pequeno ${classe}`.trim();
+  botao.textContent = texto;
+  botao.addEventListener("click", aoClicar);
+  return botao;
+}
 
 function criarItem(midia: Midia): HTMLLIElement {
-
-  // Cria o <li> (item lista)
-
   const item = document.createElement("li");
   const classeStatus = midia.status.replace(" ", "-");
   item.className = `midia midia--${classeStatus}`;
 
-  // Cria o <h3>
+  const principal = document.createElement("div");
+  principal.className = "midia__principal";
 
   const titulo = document.createElement("h3");
   titulo.className = "midia_titulo";
   titulo.textContent = `#${midia.id} ${midia.titulo}`;
 
-  // Cria a <div> que tem tudo pra ordenar
-
-  const principal = document.createElement("div");
-  principal.className = "midia__principal";
-  principal.append(titulo);
-
-  // Cria a <div> que tem as tags e o tipo
-
   const meta = document.createElement("div");
   meta.className = "midia__meta";
-
-  // Cria o <span> que tem o tipo (filme ou série)
 
   const tipo = document.createElement("span");
   tipo.className = "etiqueta etiqueta--tipo";
   tipo.textContent = midia.tipo === "serie" ? "Série" : "Filme";
 
-  // Cria a etiqueta de cada gênero (tag) e adiciona na div meta
+  const etiquetaStatus = document.createElement("span");
+  etiquetaStatus.className = `etiqueta etiqueta--${classeStatus}`;
+  etiquetaStatus.textContent = midia.status;
 
   const generos = midia.tags.map((genero) => {
     const tag = document.createElement("span");
@@ -50,18 +68,36 @@ function criarItem(midia: Midia): HTMLLIElement {
     tag.textContent = genero;
     return tag;
   });
-  meta.append(tipo, ...generos);
-  principal.append(meta);
 
-  const etiqueta = document.createElement("span");
-  etiqueta.className = `etiqueta etiqueta--${classeStatus}`;
-  etiqueta.textContent = midia.status;
+  meta.append(tipo, etiquetaStatus, ...generos);
+  principal.append(titulo, meta);
 
-  item.append(principal, etiqueta);
+  const acoes = document.createElement("div");
+  acoes.className = "midia__acoes";
+
+  const proximoStatus: Record<Status, Status> = {
+    "quero ver": "assistindo",
+    assistindo: "assisti",
+    assisti: "quero ver",
+  };
+  const statusSeguinte = proximoStatus[midia.status];
+  const rotuloStatus: Record<Status, string> = {
+    "quero ver": "Quero ver",
+    assistindo: "Assistindo",
+    assisti: "Assisti",
+  };
+
+  acoes.append(
+    botao(`Mudar para ${rotuloStatus[statusSeguinte]}`, "", () => {
+      void atualizarStatus(midia.id, statusSeguinte);
+    }),
+    botao("Remover", "botao--perigo", () => {
+      void removerDaLista(midia.id);
+    }),
+  );
+  item.append(principal, acoes);
   return item;
 }
-
-// Toda vez que altera alguma coisa, ele redesenha lista completa.
 
 function desenhar(): void {
   const itens = lista.map(criarItem);
@@ -73,39 +109,17 @@ function desenhar(): void {
   }
   elemento("lista").replaceChildren(...itens);
 
-  const assistidos = lista.filter((midia) => midia.status === "assisti").length;
-  const assistindo = lista.filter((midia) => midia.status === "assistindo").length;
-  const pendentes = lista.filter((midia) => midia.status === "quero ver").length;
   elemento("total").textContent = String(lista.length);
-  elemento("assistidos").textContent = String(assistidos);
-  elemento("assistindo").textContent = String(assistindo);
-  elemento("pendentes").textContent = String(pendentes);
+  elemento("assistidos").textContent = String(
+    lista.filter((midia) => midia.status === "assisti").length,
+  );
+  elemento("assistindo").textContent = String(
+    lista.filter((midia) => midia.status === "assistindo").length,
+  );
+  elemento("pendentes").textContent = String(
+    lista.filter((midia) => midia.status === "quero ver").length,
+  );
 }
-
-// Isso aqui é uma função que só funciona quando o formulario do frontend é submetido, dessa forma ele envia tudo pra ca e a função faz o que precisa.
-
-elemento("formulario").addEventListener("submit", (evento) => {
-  evento.preventDefault();
-  elemento("erro").textContent = "";
-  try {
-    adicionarMidia(lista, {
-      titulo: campo("titulo").value.trim(),
-      status: lerStatus(selecao("status").value),
-      tipo: lerTipo(selecao("tipo").value),
-      tags: [],
-    });
-    campo("titulo").value = "";
-    desenhar();
-  } catch (erro) {
-    if (erro instanceof Error) {
-      elemento("erro").textContent = erro.message;
-    } else {
-      elemento("erro").textContent = "Não foi possível cadastrar a mídia.";
-    }
-  }
-});
-
-// Duas funções para ler o que o usuario coloca e verifica se é valido, se não for ele lança um erro. "A mais o usuario só consegue mandar o que tem nas opções do front bla bla bla" existem maneiras de mandar sem usar o front, só é chato e a maioria dos usuarios não sabem fazer isso.
 
 function lerStatus(valor: string): Status {
   if (valor === "quero ver" || valor === "assistindo" || valor === "assisti") {
@@ -121,27 +135,151 @@ function lerTipo(valor: string): Tipo {
   throw new Error("Selecione um tipo válido.");
 }
 
-// A função iniciar faz o que???? Inicia. Neste caso ela roda antes de tudo na primeria vez para desenhar a lista se não tiver nada.
+elemento("formulario").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  elemento("erro").textContent = "";
 
-async function iniciar(): Promise<void> {
   try {
-    lista = await listarMidias();
-    desenhar();
+    const novaMidia = await cadastrarMidia({
+      titulo: campo("titulo").value.trim(),
+      status: lerStatus(selecao("status").value),
+      tipo: lerTipo(selecao("tipo").value),
+      tags: Array.from(selecao("generos").selectedOptions, (opcao) => opcao.value),
+    });
 
-    const primeiraMidia = lista[0];
-    if (primeiraMidia) {
-      const procurada = await buscarMidia(primeiraMidia.id);
-      if (procurada) {
-        console.info(`Mídia encontrada: ${procurada.titulo}`);
-      }
-    }
+    lista = [...lista, novaMidia];
+    (elemento("formulario") as HTMLFormElement).reset();
+    desenhar();
   } catch (erro) {
-    if (erro instanceof Error) {
-      elemento("erro").textContent = erro.message;
-    } else {
-      elemento("erro").textContent = "Ocorreu um erro ao carregar as mídias.";
-    }
+    mostrarErro(erro);
+  }
+});
+
+async function atualizarStatus(id: number, status: Status): Promise<void> {
+  elemento("erro").textContent = "";
+  try {
+    await alterarStatus(id, status);
+    lista = lista.map((midia) => (midia.id === id ? { ...midia, status } : midia));
+    desenhar();
+  } catch (erro) {
+    mostrarErro(erro);
   }
 }
 
+async function removerDaLista(id: number): Promise<void> {
+  if (!window.confirm(`Remover a mídia #${id} do catálogo?`)) {
+    return;
+  }
+
+  elemento("erro").textContent = "";
+  try {
+    await removerMidia(id);
+    lista = lista.filter((midia) => midia.id !== id);
+    desenhar();
+  } catch (erro) {
+    mostrarErro(erro);
+  }
+}
+
+function preencherGeneros(nomes: string[]): void {
+  const opcoes = nomes.map((nome) => {
+    const opcao = document.createElement("option");
+    opcao.value = nome;
+    opcao.textContent = nome;
+    return opcao;
+  });
+  selecao("generos").replaceChildren(...opcoes);
+}
+
+function mostrarFormulario(criando: boolean): void {
+  elemento("form-criar").hidden = !criando;
+  elemento("form-entrar").hidden = criando;
+  elemento("alternar-entrada").textContent = criando ? "Já tenho conta" : "Ainda não tenho conta";
+  elemento("erro-entrada").textContent = "";
+}
+
+elemento("alternar-entrada").addEventListener("click", () => {
+  mostrarFormulario(elemento("form-criar").hidden === true);
+});
+
+elemento("form-entrar").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  elemento("erro-entrada").textContent = "";
+  const senha = campo("entrar-senha").value;
+
+  try {
+    guardarSessao(await entrar(campo("entrar-email").value.trim(), senha));
+    campo("entrar-senha").value = "";
+    await iniciar();
+  } catch (erro) {
+    mostrarErroEntrada(erro);
+  }
+});
+
+elemento("form-criar").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  elemento("erro-entrada").textContent = "";
+
+  const nome = campo("criar-nome").value.trim();
+  const email = campo("criar-email").value.trim();
+  const senha = campo("criar-senha").value;
+
+  try {
+    await criarConta(nome, email, senha);
+    guardarSessao(await entrar(email, senha));
+    (elemento("form-criar") as HTMLFormElement).reset();
+    await iniciar();
+  } catch (erro) {
+    mostrarErroEntrada(erro);
+  }
+});
+
+elemento("botao-sair").addEventListener("click", () => {
+  encerrarSessao();
+  lista = [];
+  (elemento("form-entrar") as HTMLFormElement).reset();
+  (elemento("form-criar") as HTMLFormElement).reset();
+  mostrarFormulario(false);
+  void iniciar();
+});
+
+async function iniciar(): Promise<void> {
+  const sessao = sessaoAtual();
+  elemento("tela-entrada").hidden = sessao !== undefined;
+  elemento("tela-app").hidden = sessao === undefined;
+  elemento("botao-sair").hidden = sessao === undefined;
+  elemento("usuario-nome").textContent = "";
+
+  if (!sessao) {
+    return;
+  }
+
+  elemento("erro-entrada").textContent = "";
+  const [usuario, midias, generos] = await Promise.allSettled([
+    buscarUsuarioAtual(),
+    listarMidias(),
+    listarGeneros(),
+  ]);
+
+  if (usuario.status === "fulfilled") {
+    elemento("usuario-nome").textContent = usuario.value.nome;
+  } else {
+    mostrarErro(usuario.reason);
+  }
+
+  if (midias.status === "fulfilled") {
+    lista = midias.value;
+    desenhar();
+  } else {
+    mostrarErro(midias.reason);
+  }
+
+  if (generos.status === "fulfilled") {
+    preencherGeneros(generos.value.map((genero) => genero.nome));
+  } else if (midias.status === "fulfilled") {
+    mostrarErro(generos.reason);
+  }
+}
+
+mostrarFormulario(false);
 void iniciar();

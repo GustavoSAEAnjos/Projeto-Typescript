@@ -6,7 +6,7 @@ Aplicação em TypeScript com uma interface Vite e uma API Express que consulta 
 
 - Node.js 20.19+ e npm
 - MySQL/MariaDB do XAMPP iniciado
-- Banco `CatalogoMidias` criado com as tabelas descritas em [docs/SQL.md](./docs/SQL.md)
+- Banco `catalogomidias` existente, com as tabelas de mídias, gêneros e usuários já configuradas
 
 ## Configuração
 
@@ -17,8 +17,15 @@ DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=
-DB_NAME=CatalogoMidias
+DB_NAME=catalogomidias
 API_PORT=3000
+JWT_SEGREDO=gere-um-segredo-aleatorio-com-pelo-menos-32-caracteres
+```
+
+Substitua `JWT_SEGREDO` por uma chave aleatória com pelo menos 32 caracteres. Você pode gerar uma com:
+
+```sh
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
 O arquivo `.env` é local e não deve ser enviado ao Git.
@@ -32,10 +39,18 @@ npm run dev
 
 O comando inicia a API em `http://localhost:3000` e a interface Vite em `http://localhost:5173` (ou na próxima porta disponível). A interface encaminha as chamadas `/api` para a API.
 
-- `GET http://localhost:3000/api/midias` lista filmes e séries, incluindo seus gêneros.
-- `GET http://localhost:3000/api/midias/3` busca uma mídia; um ID inexistente responde com HTTP 404.
+- `GET /api/midias` e `GET /api/midias/:id` consultam o catálogo.
+- `GET /api/generos` lista os gêneros disponíveis.
+- `POST /api/usuarios` cria uma conta; a coluna `usuarios.senha` guarda somente o hash bcrypt.
+- `POST /api/login` autentica e devolve um JWT com validade de 8 horas.
+- `GET /api/eu` devolve os dados públicos do usuário autenticado.
+- `POST /api/midias` cadastra uma mídia e seus gêneros.
+- `PATCH /api/midias/:id/status` atualiza o status.
+- `DELETE /api/midias/:id` remove a mídia e seus vínculos de gênero.
 
-O formulário continua cadastrando itens apenas na lista da tela, conforme o escopo da Aula 3 do material. O cadastro persistente no banco não faz parte dessa etapa.
+As rotas de mídia exigem login e filtram por `idUsuario`, que vem do token assinado — nunca do corpo enviado pelo navegador. A interface guarda o JWT no `localStorage`, envia o cabeçalho `Authorization: Bearer ...` e permite sair. Cadastro, atualização de status e remoção são persistidos antes de a interface atualizar a lista.
+
+O banco atual não tem índice `UNIQUE` para `usuarios.email`; a API verifica e-mails repetidos antes do cadastro, mas a garantia contra cadastros simultâneos depende de uma restrição única no banco. Nenhum schema é alterado pelo projeto.
 
 ## Verificar e compilar
 

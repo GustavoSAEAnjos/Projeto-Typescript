@@ -106,6 +106,14 @@ main,
   flex: 1 1 160px;
 }
 
+.campo--generos {
+  flex-basis: 100%;
+}
+
+#ajuda-generos {
+  color: var(--suave);
+}
+
 .campo__rotulo {
   font-size: .85rem;
   color: var(--suave);
@@ -278,6 +286,15 @@ main,
   align-items: center;
 }
 
+.midia__principal {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.midia__acoes {
+  justify-content: flex-end;
+}
+
 .etiqueta,
 .tag {
   font-size: .75rem;
@@ -321,11 +338,6 @@ main,
 
 .etiqueta--status {
   color: var(--suave);
-}
-
-.midia__principal {
-  flex: 1 1 260px;
-  min-width: 0;
 }
 
 .vazio {

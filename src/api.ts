@@ -1,26 +1,108 @@
-import type { Midia, Status, Tipo } from "./tipos";
+import type { Midia, NovaMidia, Sessao, Status, Tipo, Usuario } from "./tipos";
 
-// Verifica se o valor recebido é um objeto e não é nulo.
+export interface Genero {
+  id: number;
+  nome: string;
+}
+
+class ErroApi extends Error {
+  constructor(
+    mensagem: string,
+    readonly status: number,
+  ) {
+    super(mensagem);
+  }
+}
+
+const CHAVE_SESSAO = "filmes:sessao";
+
 function objeto(valor: unknown): valor is Record<string, unknown> {
   return typeof valor === "object" && valor !== null;
 }
 
-// Confere se o valor corresponde a um dos status usados pelas mídias.
 function ehStatus(valor: unknown): valor is Status {
   return valor === "quero ver" || valor === "assistindo" || valor === "assisti";
 }
 
-// Confere se o valor corresponde a um dos tipos de mídia aceitos.
 function ehTipo(valor: unknown): valor is Tipo {
   return valor === "filme" || valor === "serie";
 }
 
-// Verifica se o valor é uma lista formada somente por textos.
 function ehListaDeStrings(valor: unknown): valor is string[] {
   return Array.isArray(valor) && valor.every((item: unknown) => typeof item === "string");
 }
 
-// Valida os dados recebidos da API e transforma o valor em uma mídia.
+export function sessaoAtual(): Sessao | undefined {
+  const texto = localStorage.getItem(CHAVE_SESSAO);
+  if (!texto) {
+    return undefined;
+  }
+
+  try {
+    const valor: unknown = JSON.parse(texto);
+    if (
+      objeto(valor) &&
+      typeof valor.token === "string" &&
+      typeof valor.nome === "string"
+    ) {
+      return { token: valor.token, nome: valor.nome };
+    }
+  } catch {
+    localStorage.removeItem(CHAVE_SESSAO);
+    return undefined;
+  }
+
+  localStorage.removeItem(CHAVE_SESSAO);
+  return undefined;
+}
+
+export function guardarSessao(sessao: Sessao): void {
+  localStorage.setItem(CHAVE_SESSAO, JSON.stringify(sessao));
+}
+
+export function encerrarSessao(): void {
+  localStorage.removeItem(CHAVE_SESSAO);
+}
+
+async function enviar(metodo: string, url: string, corpo?: unknown): Promise<Response> {
+  const sessao = sessaoAtual();
+  const headers: Record<string, string> = {};
+  if (corpo !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+  if (sessao && url !== "/api/login" && url !== "/api/usuarios") {
+    headers.Authorization = `Bearer ${sessao.token}`;
+  }
+
+  const resposta = await fetch(url, {
+    method: metodo,
+    headers,
+    body: corpo === undefined ? undefined : JSON.stringify(corpo),
+  });
+
+  if (resposta.status === 401 && sessao && url !== "/api/login") {
+    encerrarSessao();
+    location.reload();
+  }
+
+  if (!resposta.ok) {
+    let detalhe: unknown;
+    try {
+      detalhe = await resposta.json();
+    } catch {
+      detalhe = undefined;
+    }
+
+    const mensagem =
+      objeto(detalhe) && typeof detalhe.erro === "string"
+        ? detalhe.erro
+        : `Erro ${resposta.status} ao comunicar com a API.`;
+    throw new ErroApi(mensagem, resposta.status);
+  }
+
+  return resposta;
+}
+
 function converterMidia(valor: unknown): Midia {
   if (
     !objeto(valor) ||
@@ -43,30 +125,86 @@ function converterMidia(valor: unknown): Midia {
   };
 }
 
-// Busca todas as mídias na API e verifica se a resposta está no formato esperado.
 export async function listarMidias(): Promise<Midia[]> {
-  const resposta = await fetch("/api/midias");
-  if (!resposta.ok) {
-    throw new Error("Não foi possível carregar as mídias. Verifique se a API está rodando.");
-  }
-
+  const resposta = await enviar("GET", "/api/midias");
   const bruto: unknown = await resposta.json();
   if (!Array.isArray(bruto)) {
     throw new Error("A API retornou uma lista de mídias em formato inválido.");
   }
-
   return bruto.map(converterMidia);
 }
 
-// Busca uma mídia pelo ID; retorna undefined se ela não for encontrada.
-export async function buscarMidia(id: number): Promise<Midia | undefined> {
-  const resposta = await fetch(`/api/midias/${id}`);
-  if (resposta.status === 404) {
-    return undefined;
+export async function listarGeneros(): Promise<Genero[]> {
+  const resposta = await enviar("GET", "/api/generos");
+  const bruto: unknown = await resposta.json();
+  if (
+    !Array.isArray(bruto) ||
+    !bruto.every(
+      (genero: unknown) =>
+        objeto(genero) &&
+        typeof genero.id === "number" &&
+        Number.isSafeInteger(genero.id) &&
+        typeof genero.nome === "string",
+    )
+  ) {
+    throw new Error("A API retornou uma lista de gêneros em formato inválido.");
   }
-  if (!resposta.ok) {
-    throw new Error(`Erro ${resposta.status} ao buscar a mídia #${id}.`);
-  }
+  return bruto;
+}
 
+export async function buscarMidia(id: number): Promise<Midia | undefined> {
+  try {
+    const resposta = await enviar("GET", `/api/midias/${id}`);
+    return converterMidia(await resposta.json());
+  } catch (erro) {
+    if (erro instanceof ErroApi && erro.status === 404) {
+      return undefined;
+    }
+    throw erro;
+  }
+}
+
+export async function cadastrarMidia(dados: NovaMidia): Promise<Midia> {
+  const resposta = await enviar("POST", "/api/midias", dados);
   return converterMidia(await resposta.json());
+}
+
+export async function alterarStatus(id: number, status: Status): Promise<void> {
+  await enviar("PATCH", `/api/midias/${id}/status`, { status });
+}
+
+export async function removerMidia(id: number): Promise<void> {
+  await enviar("DELETE", `/api/midias/${id}`);
+}
+
+export async function criarConta(nome: string, email: string, senha: string): Promise<void> {
+  await enviar("POST", "/api/usuarios", { nome, email, senha });
+}
+
+export async function entrar(email: string, senha: string): Promise<Sessao> {
+  const resposta = await enviar("POST", "/api/login", { email, senha });
+  const valor: unknown = await resposta.json();
+  if (
+    !objeto(valor) ||
+    typeof valor.token !== "string" ||
+    typeof valor.nome !== "string"
+  ) {
+    throw new Error("A API retornou uma sessão em formato inválido.");
+  }
+  return { token: valor.token, nome: valor.nome };
+}
+
+export async function buscarUsuarioAtual(): Promise<Usuario> {
+  const resposta = await enviar("GET", "/api/eu");
+  const valor: unknown = await resposta.json();
+  if (
+    !objeto(valor) ||
+    typeof valor.id !== "number" ||
+    !Number.isSafeInteger(valor.id) ||
+    typeof valor.nome !== "string" ||
+    typeof valor.email !== "string"
+  ) {
+    throw new Error("A API retornou um usuário em formato inválido.");
+  }
+  return { id: valor.id, nome: valor.nome, email: valor.email };
 }

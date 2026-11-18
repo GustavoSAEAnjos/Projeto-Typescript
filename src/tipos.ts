@@ -12,5 +12,17 @@ export interface Midia {
   status: Status;
   tags: string[];
 }
+
+export interface Sessao {
+  token: string;
+  nome: string;
+}
+
+export interface Usuario {
+  id: number;
+  nome: string;
+  email: string;
+}
+
 // Exporta o objeto pra todas as paginas que precisarem, só que omite o ID para que não seja possível mexer nele.
 export type NovaMidia = Omit<Midia, "id">;

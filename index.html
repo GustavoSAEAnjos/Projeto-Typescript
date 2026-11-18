@@ -15,9 +15,47 @@
       <h1 class="cabecalho__titulo"><span id="nome-do-sistema">—</span></h1>
       <p class="cabecalho__subtitulo"><span id="versao">—</span> · <span id="data-de-hoje">—</span></p>
     </div>
+    <div class="cabecalho__acoes">
+      <span id="usuario-nome"></span>
+      <button class="botao botao--pequeno" id="botao-sair" type="button" hidden>Sair</button>
+    </div>
   </header>
 
-  <main>
+  <section class="entrada" id="tela-entrada">
+    <form class="formulario" id="form-entrar">
+      <h2>Entrar</h2>
+      <div class="campo">
+        <label class="campo__rotulo" for="entrar-email">E-mail</label>
+        <input class="campo__entrada" id="entrar-email" type="email" maxlength="80" autocomplete="email" required />
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="entrar-senha">Senha</label>
+        <input class="campo__entrada" id="entrar-senha" type="password" minlength="6" maxlength="72" autocomplete="current-password" required />
+      </div>
+      <button class="botao botao--primario" type="submit">Entrar</button>
+    </form>
+
+    <form class="formulario" id="form-criar" hidden>
+      <h2>Criar conta</h2>
+      <div class="campo">
+        <label class="campo__rotulo" for="criar-nome">Nome</label>
+        <input class="campo__entrada" id="criar-nome" type="text" maxlength="80" autocomplete="name" required />
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="criar-email">E-mail</label>
+        <input class="campo__entrada" id="criar-email" type="email" maxlength="80" autocomplete="email" required />
+      </div>
+      <div class="campo">
+        <label class="campo__rotulo" for="criar-senha">Senha (6 a 72 caracteres)</label>
+        <input class="campo__entrada" id="criar-senha" type="password" minlength="6" maxlength="72" autocomplete="new-password" required />
+      </div>
+      <button class="botao botao--primario" type="submit">Criar conta</button>
+    </form>
+    <button class="botao botao--pequeno" id="alternar-entrada" type="button">Ainda não tenho conta</button>
+    <p class="campo__erro" id="erro-entrada" role="alert"></p>
+  </section>
+
+  <main id="tela-app" hidden>
     <ul class="estatisticas">
       <li class="estatistica"><span class="estatistica__numero" id="total">0</span><span
           class="estatistica__rotulo">Total</span></li>
@@ -49,6 +87,11 @@
           <option value="filme">Filme</option>
           <option value="serie" selected>Série</option>
         </select>
+      </div>
+      <div class="campo campo--generos">
+        <label class="campo__rotulo" for="generos">Gêneros</label>
+        <select class="campo__selecao" id="generos" multiple size="3" aria-describedby="ajuda-generos"></select>
+        <small id="ajuda-generos">Use Ctrl (Windows) ou Command (Mac) para selecionar mais de um.</small>
       </div>
       <button class="botao botao--primario" type="submit">Cadastrar</button>
     </form>

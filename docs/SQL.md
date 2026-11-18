@@ -1,6 +1,10 @@
 # Banco de dados do catálogo
 
-O projeto usa MySQL/MariaDB do XAMPP. O banco existente deve se chamar `CatalogoMidias` e conter `Midias`, `Generos` e `MidiaGenero`. A API só consulta esses dados; não cria nem altera tabelas.
+O projeto usa o MySQL/MariaDB já em execução no XAMPP. O banco existente chama-se `catalogomidias` e contém as tabelas de mídias, gêneros e usuários. A API lê e grava dados, mas não cria nem altera o schema.
+
+As tabelas de autenticação existentes são `usuarios` (`id` AUTO_INCREMENT, `nome` VARCHAR(80), `email` VARCHAR(80), `senha` TEXT) e a coluna `midias.idUsuario`, com chave estrangeira para `usuarios.id`. A API grava em `usuarios.senha` somente hashes bcrypt, nunca a senha original. O e-mail é verificado pela API antes do cadastro; o banco atual não possui índice `UNIQUE` nessa coluna.
+
+O script abaixo é apenas uma referência para a estrutura inicial de mídias. Não o execute no banco existente: o projeto não aplica alterações de schema.
 
 ## Diagrama
 
@@ -17,8 +21,6 @@ O projeto usa MySQL/MariaDB do XAMPP. O banco existente deve se chamar `Catalogo
 <img src="diagramaBD.png" alt="Diagrama do banco de dados do catálogo">
 
 ## Script de criação para MySQL/MariaDB
-
-Use este script somente para criar o banco e as tabelas caso ainda não existam. Ele não apaga nem migra tabelas já existentes.
 
 ```sql
 CREATE DATABASE IF NOT EXISTS CatalogoMidias
