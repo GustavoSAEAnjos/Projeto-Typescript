@@ -1,49 +1,102 @@
-# Banco de dados do catálogo
+# Banco de dados do catalogo
 
-O projeto usa o MySQL/MariaDB já em execução no XAMPP. O banco existente chama-se `catalogomidias` e contém as tabelas de mídias, gêneros e usuários. A API lê e grava dados, mas não cria nem altera o schema.
+O projeto usa o MySQL/MariaDB fornecido pelo XAMPP. A configuracao padrao, definida em `api/src/banco.ts`, conecta ao banco `catalogomidias` no endereco `localhost:3306`. O schema deve ser criado previamente no banco; a API nao executa criacoes ou alteracoes de tabelas.
 
-As tabelas de autenticação existentes são `usuarios` (`id` AUTO_INCREMENT, `nome` VARCHAR(80), `email` VARCHAR(80), `senha` TEXT) e a coluna `midias.idUsuario`, com chave estrangeira para `usuarios.id`. A API grava em `usuarios.senha` somente hashes bcrypt, nunca a senha original. O e-mail é verificado pela API antes do cadastro; o banco atual não possui índice `UNIQUE` nessa coluna.
+O banco contem quatro tabelas:
 
-O script abaixo é apenas uma referência para a estrutura inicial de mídias. Não o execute no banco existente: o projeto não aplica alterações de schema.
+| Tabela | Finalidade |
+|---|---|
+| `usuarios` | Contas cadastradas |
+| `Midias` | Catalogo pessoal de cada usuario |
+| `Generos` | Generos disponiveis para associacao |
+| `MidiaGenero` | Relacao muitos para muitos entre midias e generos |
+
+Cada `Midias.idUsuario` identifica o dono da midia. Dessa forma, as consultas de listagem, consulta, alteracao e exclusao filtram os registros pelo ID presente no JWT.
+
+## Estrutura atual
+
+### usuarios
+
+| Campo | Tipo | Restricoes |
+|---|---|---|
+| `id` | INT | PRIMARY KEY, AUTO_INCREMENT |
+| `nome` | VARCHAR(80) | NOT NULL |
+| `email` | VARCHAR(80) | NOT NULL |
+| `senha` | TEXT | NOT NULL; guarda o hash bcrypt |
+
+Nao existe uma restricao UNIQUE para `email` no banco atual. A API verifica um e-mail existente antes do cadastro e trata `ER_DUP_ENTRY`, mas cadastros simultaneos exigiriam uma chave UNIQUE no banco para garantir essa regra completamente.
+
+### Midias
+
+| Campo | Tipo | Restricoes |
+|---|---|---|
+| `Id` | INT | PRIMARY KEY, AUTO_INCREMENT |
+| `Titulo` | VARCHAR(200) | NOT NULL |
+| `Status` | VARCHAR(20) | NOT NULL; CHECK: `Quero ver`, `Assistindo` ou `Assisti` |
+| `Tipo` | VARCHAR(10) | NOT NULL; CHECK: `Filme` ou `Série` |
+| `idUsuario` | INT | NOT NULL, FK para `usuarios.id` |
+
+A foreign key `conexcao_tabelas_midias_usuarios` usa `ON DELETE CASCADE`. Ao excluir um usuario, suas midias devem ser excluidas pelo banco.
+
+### Generos
+
+| Campo | Tipo | Restricoes |
+|---|---|---|
+| `Id` | INT | PRIMARY KEY, AUTO_INCREMENT |
+| `Nome` | VARCHAR(50) | NOT NULL, UNIQUE |
+
+### MidiaGenero
+
+| Campo | Tipo | Restricoes |
+|---|---|---|
+| `MidiaId` | INT | PK composta, FK para `Midias.Id` |
+| `GeneroId` | INT | PK composta, FK para `Generos.Id` |
 
 ## Diagrama
 
-| Campo | Tipo | Restrições |
-|---|---|---|
-| Midias.Id | INT | PK, AUTO_INCREMENT |
-| Midias.Titulo | VARCHAR(200) | Obrigatório |
-| Midias.Status | VARCHAR(20) | Quero ver, Assistindo ou Assisti |
-| Midias.Tipo | VARCHAR(10) | Filme ou Série |
-| Generos.Id | INT | PK, AUTO_INCREMENT |
-| Generos.Nome | VARCHAR(50) | Obrigatório, único |
-| MidiaGenero | relação N:N | PK composta e FKs para Midias e Generos |
+<img src="diagramaBD.png" alt="Diagrama do banco de dados do catalogo">
 
-<img src="diagramaBD.png" alt="Diagrama do banco de dados do catálogo">
+## Referencia de criacao
 
-## Script de criação para MySQL/MariaDB
+Este script representa a estrutura usada pelo projeto. Nao deve ser executado diretamente em um banco que ja possui as tabelas, pois o projeto nao cria nem atualiza o schema automaticamente.
 
 ```sql
-CREATE DATABASE IF NOT EXISTS CatalogoMidias
+CREATE DATABASE IF NOT EXISTS catalogomidias
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE CatalogoMidias;
+USE catalogomidias;
+
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INT NOT NULL AUTO_INCREMENT,
+    nome VARCHAR(80) NOT NULL,
+    email VARCHAR(80) NOT NULL,
+    senha TEXT NOT NULL,
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS Midias (
-    Id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    Id INT NOT NULL AUTO_INCREMENT,
     Titulo VARCHAR(200) NOT NULL,
     Status VARCHAR(20) NOT NULL,
     Tipo VARCHAR(10) NOT NULL,
+    idUsuario INT NOT NULL,
+    PRIMARY KEY (Id),
     CONSTRAINT chk_midias_status
         CHECK (Status IN ('Quero ver', 'Assistindo', 'Assisti')),
     CONSTRAINT chk_midias_tipo
-        CHECK (Tipo IN ('Filme', 'Série'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        CHECK (Tipo IN ('Filme', 'Série')),
+    CONSTRAINT conexcao_tabelas_midias_usuarios
+        FOREIGN KEY (idUsuario) REFERENCES usuarios(id)
+        ON DELETE CASCADE ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS Generos (
-    Id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    Nome VARCHAR(50) NOT NULL UNIQUE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    Id INT NOT NULL AUTO_INCREMENT,
+    Nome VARCHAR(50) NOT NULL,
+    PRIMARY KEY (Id),
+    UNIQUE KEY uk_generos_nome (Nome)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS MidiaGenero (
     MidiaId INT NOT NULL,
@@ -53,8 +106,14 @@ CREATE TABLE IF NOT EXISTS MidiaGenero (
         FOREIGN KEY (MidiaId) REFERENCES Midias(Id),
     CONSTRAINT fk_midiagenero_genero
         FOREIGN KEY (GeneroId) REFERENCES Generos(Id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
 
+## Generos iniciais
+
+O cadastro de uma nova midia aceita somente nomes presentes em `Generos`:
+
+```sql
 INSERT IGNORE INTO Generos (Nome) VALUES
 ('Ação'),
 ('Aventura'),
@@ -73,28 +132,42 @@ INSERT IGNORE INTO Generos (Nome) VALUES
 ('Histórico');
 ```
 
-## Exemplos
+## Exemplos usados pela API
+
+Cadastro de usuario com senha armazenada como hash bcrypt:
 
 ```sql
-INSERT INTO Midias (Titulo, Status, Tipo)
-VALUES ('Interestelar', 'Quero ver', 'Filme');
+INSERT INTO usuarios (nome, email, senha)
+VALUES ('Exemplo', 'exemplo@email.com', '<hash-bcrypt>');
+```
 
+Cadastro de uma midia para um usuario:
+
+```sql
+INSERT INTO Midias (Titulo, Status, Tipo, idUsuario)
+VALUES ('Interestelar', 'Quero ver', 'Filme', 1);
+```
+
+Associacao da midia aos generos:
+
+```sql
 INSERT INTO MidiaGenero (MidiaId, GeneroId)
 VALUES (1, 6), (1, 7);
 ```
 
-Consulta equivalente à usada pela API para listar mídias e gêneros:
+Consulta equivalente a utilizada pela API para listar uma midia e seus generos:
 
 ```sql
 SELECT
-    M.Id,
-    M.Titulo,
-    M.Status,
-    M.Tipo,
-    GROUP_CONCAT(G.Nome ORDER BY G.Nome SEPARATOR ',') AS Generos
+    M.Id AS id,
+    M.Titulo AS titulo,
+    M.Status AS status,
+    M.Tipo AS tipo,
+    GROUP_CONCAT(G.Nome ORDER BY G.Nome SEPARATOR ',') AS generos
 FROM Midias M
 LEFT JOIN MidiaGenero MG ON MG.MidiaId = M.Id
 LEFT JOIN Generos G ON G.Id = MG.GeneroId
+WHERE M.idUsuario = 1
 GROUP BY M.Id, M.Titulo, M.Status, M.Tipo
 ORDER BY M.Id;
 ```
