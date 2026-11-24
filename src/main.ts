@@ -11,14 +11,25 @@ import {
   listarMidias,
   removerMidia,
   sessaoAtual,
+  buscarEstatisticas,
 } from "./api";
-import type { Midia, Status, Tipo } from "./tipos";
+import type { Midia, Status, Tipo, Contagem } from "./tipos";
+
+import {
+  filtrarPorStatus,
+  pesquisarPorTitulo,
+  ordenarPorTitulo,
+  contarPorStatus,
+} from "./servicos";
 
 elemento("nome-do-sistema").textContent = "Filmes";
-elemento("versao").textContent = "v0.5.0";
+elemento("versao").textContent = "v0.6.0";
 elemento("data-de-hoje").textContent = new Date().toLocaleDateString("pt-BR");
 
 let lista: Midia[] = [];
+
+let statusSelecionado: Status | "todos" = "todos";
+let termoDeBusca = "";
 
 function mostrarErro(erro: unknown): void {
   elemento("erro").textContent =
@@ -99,27 +110,81 @@ function criarItem(midia: Midia): HTMLLIElement {
   return item;
 }
 
-function desenhar(): void {
-  const itens = lista.map(criarItem);
+function midiasVisiveis(): Midia[] {
+  let resultado = lista;
+
+  if (statusSelecionado !== "todos") {
+    resultado = filtrarPorStatus(resultado, statusSelecionado);
+  }
+
+  resultado = pesquisarPorTitulo(resultado, termoDeBusca);
+
+  return ordenarPorTitulo(resultado);
+}
+
+function exibirContagem(contagem: Contagem): void {
+  elemento("total").textContent = String(
+    contagem["quero ver"] +
+    contagem["assistindo"] +
+    contagem["assisti"]
+  );
+
+  elemento("assistidos").textContent = String(contagem["assisti"]);
+  elemento("assistindo").textContent = String(contagem["assistindo"]);
+  elemento("pendentes").textContent = String(contagem["quero ver"]);
+}
+
+async function atualizarPainel(): Promise<void> {
+  // O reduce é útil para contar os dados já carregados no navegador.
+  exibirContagem(contarPorStatus(lista));
+
+  // O GROUP BY é melhor para consultar os totais diretamente no banco.
+  exibirContagem(await buscarEstatisticas());
+}
+
+function desenhar(atualizarEstatisticas = true): void {
+  const itens = midiasVisiveis().map(criarItem);
+
   if (itens.length === 0) {
     const vazio = document.createElement("li");
     vazio.className = "vazio";
-    vazio.textContent = "Nenhum filme ou série cadastrado no banco.";
+    vazio.textContent = "Nenhum filme ou série encontrado.";
     itens.push(vazio);
   }
+
   elemento("lista").replaceChildren(...itens);
 
-  elemento("total").textContent = String(lista.length);
-  elemento("assistidos").textContent = String(
-    lista.filter((midia) => midia.status === "assisti").length,
-  );
-  elemento("assistindo").textContent = String(
-    lista.filter((midia) => midia.status === "assistindo").length,
-  );
-  elemento("pendentes").textContent = String(
-    lista.filter((midia) => midia.status === "quero ver").length,
-  );
+  if (atualizarEstatisticas) {
+  atualizarPainel().catch(mostrarErro);
 }
+}
+
+campo("busca").addEventListener("input", () => {
+  termoDeBusca = campo("busca").value;
+  desenhar(false);
+});
+
+elemento("filtros-status").addEventListener("click", (evento) => {
+  const alvo = evento.target;
+
+  if (!(alvo instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  const status = alvo.dataset.status;
+
+  if (status === "todos") {
+    statusSelecionado = "todos";
+  } else {
+    statusSelecionado = lerStatus(status ?? "");
+  }
+
+  elemento("filtros-status").querySelectorAll("button").forEach((botao) => {
+    botao.classList.toggle("botao--primario", botao === alvo);
+  });
+
+  desenhar(false);
+});
 
 function lerStatus(valor: string): Status {
   if (valor === "quero ver" || valor === "assistindo" || valor === "assisti") {

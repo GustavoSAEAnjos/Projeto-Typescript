@@ -235,6 +235,29 @@ app.get("/api/eu", exigirLogin, async (_req, res) => {
   res.json(usuario);
 });
 
+app.get("/api/estatisticas", exigirLogin, async (_req, res) => {
+  const [linhas] = await banco.execute<RowDataPacket[]>(
+    `SELECT Status, COUNT(*) AS quantidade
+     FROM Midias
+     WHERE idUsuario = ?
+     GROUP BY Status`,
+    [usuarioDe(res)]
+  );
+
+  const contagem: Record<Status, number> = {
+    "quero ver": 0,
+    "assistindo": 0,
+    "assisti": 0
+  };
+
+  for (const linha of linhas) {
+    const status = mapearStatus(String(linha.Status));
+    contagem[status] = Number(linha.quantidade);
+  }
+
+  res.json(contagem);
+});
+
 app.get("/api/midias", exigirLogin, async (_req, res) => {
   try {
     const [linhas] = await banco.execute<LinhaMidia[]>(

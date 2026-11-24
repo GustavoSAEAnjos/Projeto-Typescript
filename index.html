@@ -30,7 +30,8 @@
       </div>
       <div class="campo">
         <label class="campo__rotulo" for="entrar-senha">Senha</label>
-        <input class="campo__entrada" id="entrar-senha" type="password" minlength="6" maxlength="72" autocomplete="current-password" required />
+        <input class="campo__entrada" id="entrar-senha" type="password" minlength="6" maxlength="72"
+          autocomplete="current-password" required />
       </div>
       <button class="botao botao--primario" type="submit">Entrar</button>
     </form>
@@ -47,7 +48,8 @@
       </div>
       <div class="campo">
         <label class="campo__rotulo" for="criar-senha">Senha (6 a 72 caracteres)</label>
-        <input class="campo__entrada" id="criar-senha" type="password" minlength="6" maxlength="72" autocomplete="new-password" required />
+        <input class="campo__entrada" id="criar-senha" type="password" minlength="6" maxlength="72"
+          autocomplete="new-password" required />
       </div>
       <button class="botao botao--primario" type="submit">Criar conta</button>
     </form>
@@ -96,6 +98,17 @@
       <button class="botao botao--primario" type="submit">Cadastrar</button>
     </form>
     <p class="campo__erro" id="erro" role="alert"></p>
+    <div class="campo">
+      <label class="campo__rotulo" for="busca">Pesquisar por título</label>
+      <input class="campo__entrada" id="busca" type="search" placeholder="Digite um título..." autocomplete="off" />
+    </div>
+
+    <div id="filtros-status">
+      <button class="botao botao--primario" type="button" data-status="todos">Todos</button>
+      <button class="botao" type="button" data-status="quero ver">Quero Ver</button>
+      <button class="botao" type="button" data-status="assistindo">Assistindo</button>
+      <button class="botao" type="button" data-status="assisti">Assisti</button>
+    </div>
     <ul class="lista" id="lista"></ul>
   </main>
 

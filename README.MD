@@ -47,6 +47,7 @@ O comando inicia a API em `http://localhost:3000` e a interface Vite em `http://
 - `POST /api/midias` cadastra uma mídia e seus gêneros.
 - `PATCH /api/midias/:id/status` atualiza o status.
 - `DELETE /api/midias/:id` remove a mídia e seus vínculos de gênero.
+- `GET /api/estatisticas` retorna a quantidade de mídias por status do usuário autenticado, utilizando `COUNT(*)` e `GROUP BY`.
 
 As rotas de mídia exigem login e filtram por `idUsuario`, que vem do token assinado — nunca do corpo enviado pelo navegador. A interface guarda o JWT no `localStorage`, envia o cabeçalho `Authorization: Bearer ...` e permite sair. Cadastro, atualização de status e remoção são persistidos antes de a interface atualizar a lista.
 

@@ -1,4 +1,4 @@
-import type { Midia, NovaMidia, Sessao, Status, Tipo, Usuario } from "./tipos";
+import type { Midia, NovaMidia, Sessao, Status, Tipo, Contagem, Usuario } from "./tipos";
 
 export interface Genero {
   id: number;
@@ -123,6 +123,11 @@ function converterMidia(valor: unknown): Midia {
     tipo: valor.tipo,
     tags: valor.tags,
   };
+}
+
+export async function buscarEstatisticas(): Promise<Contagem> {
+  const resposta = await enviar("GET", "/api/estatisticas");
+  return (await resposta.json()) as Contagem;
 }
 
 export async function listarMidias(): Promise<Midia[]> {

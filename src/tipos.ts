@@ -2,6 +2,7 @@
 
 export type Status = "quero ver" | "assistindo" | "assisti";
 export type Tipo = "serie" | "filme";
+export type Contagem = Record<Status, number>;
 
 // Objeto.
 
