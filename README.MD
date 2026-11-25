@@ -1,6 +1,6 @@
 # Catálogo de filmes e séries
 
-Aplicação TypeScript com interface Vite, API Express e MySQL. Mantém o tema de catálogo pessoal de filmes e séries.
+Aplicação TypeScript com interface Vite, API Express e MySQL.
 
 ## Estrutura
 
@@ -9,9 +9,8 @@ Aplicação TypeScript com interface Vite, API Express e MySQL. Mantém o tema d
 - `api/src/`: API, autenticação JWT e acesso ao MySQL.
 - `css/filmes.css`: estilos da interface.
 - `docs/SQL.md`: modelo e exemplos do banco.
-- `docs/banco.sql`: script completo para recriar o banco.
-- `docs/TaskFlow_Aula7_ALUNO.pdf`: documento da avaliação.
-- `docs/imagens/`: imagens do DER.
+- `docs/catalogomidias.sql`: script completo para recriar o banco.
+- `docs/imagens/`: imagens do DER e imagens para o README.
 
 ## Requisitos
 
@@ -21,11 +20,13 @@ Aplicação TypeScript com interface Vite, API Express e MySQL. Mantém o tema d
 
 ## Configuração do banco
 
-1. Inicie o MySQL pelo XAMPP.
+1. Inicie o MySQL pelo XAMPP apertando em "Start" tanto na linha do Apache quanto na do MySQL
+    ![Imagem inicial do XAMPP](docs/imagens/xampp_inicial.png)
+
 2. Execute o script completo:
 
 ```sh
-mysql -u root -p < docs/banco.sql
+mysql -u root -p < docs/catalogomidias.sql.sql
 ```
 
 No Windows, execute o comando em um terminal aberto na raiz do projeto. O script cria o banco `catalogomidias`, as quatro tabelas, as restrições e os dados iniciais.
@@ -62,7 +63,7 @@ npm install
 npm run dev
 ```
 
-A interface fica em `http://localhost:5173` e a API em `http://localhost:3000`.
+A interface fica em uma porta localhost especifica, geralmente em `http://localhost:5173` (mas pode ser em outra então verfique a saída que aparece no terminal) e a API em `http://localhost:3000`.
 
 ## Verificação
 
@@ -71,18 +72,18 @@ npm run verificar
 npm run build
 ```
 
-## Requisitos implementados
+Após isso o projeto vai rodar perfeitamente com todas as funcionalidades planejadas.
 
-- Quatro tabelas: `usuarios`, `Midias`, `Generos` e `MidiaGenero`, com chave estrangeira.
-- CHECK para status e tipo em `Midias`, UNIQUE para e-mail e gênero.
-- Cadastro/login com bcrypt e JWT.
-- CRUD completo de mídias persistido no MySQL.
-- Busca e filtros no navegador.
-- Painel com total, assistidos, assistindo e pendentes.
-- Consultas SQL com JOIN e GROUP BY.
-- SQL com parâmetros e transações nas operações relacionadas.
-- DER em `docs/imagens/diagrama.png` e `docs/diagrama-brModelo.brM3`.
+## Pagina Inicial
 
-## Filtros no navegador e no SQL
+![Imagem inicial da Aplicação](docs/imagens/inicial.png)
 
-A busca por título e os filtros visuais são aplicados no navegador sobre os dados já carregados pela API: isso evita requisições a cada tecla e permite respostas imediatas. A proteção e a contagem por usuário são feitas no MySQL com `WHERE idUsuario = ?`, `JOIN` e `GROUP BY`, pois essa operação precisa usar os dados persistidos e impedir que um usuário acesse outro usuário. O filtro de busca de texto digitado não é enviado diretamente ao SQL.
+Após isso é só entrar com as credenciais teste que você verá:
+
+![Imagem inicial do XAMPP](docs/imagens/dashboard.png)
+
+Se a tela que aparecer para você for igual a esta, então seu projeot foi inicializado com exíto.
+## Possíveis Erros pela falta do banco de dados (ou não inicalização)
+![Possível erro no Login](docs/imagens/erro_login.png)
+
+![Possível erro no Dashboard](docs/imagens/erro_dashboard.png)
