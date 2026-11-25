@@ -26,6 +26,7 @@ Cada `Midias.idUsuario` identifica o dono da midia. Dessa forma, as consultas de
 
 Nao existe uma restricao UNIQUE para `email` no banco atual. A API verifica um e-mail existente antes do cadastro e trata `ER_DUP_ENTRY`, mas cadastros simultaneos exigiriam uma chave UNIQUE no banco para garantir essa regra completamente.
 
+
 ### Midias
 
 | Campo | Tipo | Restricoes |
@@ -37,6 +38,8 @@ Nao existe uma restricao UNIQUE para `email` no banco atual. A API verifica um e
 | `idUsuario` | INT | NOT NULL, FK para `usuarios.id` |
 
 A foreign key `conexcao_tabelas_midias_usuarios` usa `ON DELETE CASCADE`. Ao excluir um usuario, suas midias devem ser excluidas pelo banco.
+
+![Representação da tabela mídias e seus relacionamentos no brModelo](imagens/midias.png)
 
 ### Generos
 
@@ -54,7 +57,8 @@ A foreign key `conexcao_tabelas_midias_usuarios` usa `ON DELETE CASCADE`. Ao exc
 
 ## Diagrama
 
-<img src="diagramaBD.png" alt="Diagrama do banco de dados do catalogo">
+![Representação do banco de dados pelo brModelo](imagens/diagrama.png)
+_(arquivo `diagrama-brModelo.brM3`)_
 
 ## Referencia de criacao
 
