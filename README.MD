@@ -20,13 +20,13 @@ Aplicação TypeScript com interface Vite, API Express e MySQL.
 
 ## Configuração do banco
 
-1. Inicie o MySQL pelo XAMPP apertando em "Start" tanto na linha do Apache quanto na do MySQL
+1. Inicie o MySQL pelo XAMPP apertando em "Start" tanto na linha do Apache quanto na do MySQL:
     ![Imagem inicial do XAMPP](docs/imagens/xampp_inicial.png)
 
 2. Execute o script completo:
 
 ```sh
-mysql -u root -p < docs/catalogomidias.sql.sql
+mysql -u root -p < docs/catalogomidias.sql
 ```
 
 No Windows, execute o comando em um terminal aberto na raiz do projeto. O script cria o banco `catalogomidias`, as quatro tabelas, as restrições e os dados iniciais.
