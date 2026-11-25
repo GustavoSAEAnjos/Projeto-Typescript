@@ -4,6 +4,7 @@ import {
   buscarUsuarioAtual,
   cadastrarMidia,
   criarConta,
+  editarMidia,
   encerrarSessao,
   entrar,
   guardarSessao,
@@ -30,6 +31,7 @@ let lista: Midia[] = [];
 
 let statusSelecionado: Status | "todos" = "todos";
 let termoDeBusca = "";
+let idEmEdicao: number | undefined;
 
 function mostrarErro(erro: unknown): void {
   elemento("erro").textContent =
@@ -99,6 +101,9 @@ function criarItem(midia: Midia): HTMLLIElement {
   };
 
   acoes.append(
+    botao("Editar", "botao--sucesso", () => {
+      abrirEdicao(midia);
+    }),
     botao(`Mudar para ${rotuloStatus[statusSeguinte]}`, "", () => {
       void atualizarStatus(midia.id, statusSeguinte);
     }),
@@ -246,6 +251,53 @@ async function removerDaLista(id: number): Promise<void> {
   }
 }
 
+function abrirEdicao(midia: Midia): void {
+  idEmEdicao = midia.id;
+  campo("editar-titulo").value = midia.titulo;
+  selecao("editar-status").value = midia.status;
+  selecao("editar-tipo").value = midia.tipo;
+
+  const generos = selecao("editar-generos");
+  Array.from(generos.options).forEach((opcao) => {
+    opcao.selected = midia.tags.includes(opcao.value);
+  });
+
+  elemento("form-editar").hidden = false;
+  campo("editar-titulo").focus();
+  elemento("form-editar").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+elemento("cancelar-edicao").addEventListener("click", () => {
+  idEmEdicao = undefined;
+  elemento("form-editar").hidden = true;
+});
+
+elemento("form-editar").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  if (idEmEdicao === undefined) {
+    return;
+  }
+
+  elemento("erro").textContent = "";
+  const id = idEmEdicao;
+
+  try {
+    const atualizada = await editarMidia(id, {
+      titulo: campo("editar-titulo").value.trim(),
+      status: lerStatus(selecao("editar-status").value),
+      tipo: lerTipo(selecao("editar-tipo").value),
+      tags: Array.from(selecao("editar-generos").selectedOptions, (opcao) => opcao.value),
+    });
+
+    lista = lista.map((midia) => (midia.id === id ? atualizada : midia));
+    idEmEdicao = undefined;
+    elemento("form-editar").hidden = true;
+    desenhar();
+  } catch (erro) {
+    mostrarErro(erro);
+  }
+});
+
 function preencherGeneros(nomes: string[]): void {
   const opcoes = nomes.map((nome) => {
     const opcao = document.createElement("option");
@@ -254,6 +306,7 @@ function preencherGeneros(nomes: string[]): void {
     return opcao;
   });
   selecao("generos").replaceChildren(...opcoes);
+  selecao("editar-generos").replaceChildren(...opcoes.map((opcao) => opcao.cloneNode(true) as HTMLOptionElement));
 }
 
 function mostrarFormulario(criando: boolean): void {

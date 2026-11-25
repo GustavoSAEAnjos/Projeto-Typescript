@@ -380,6 +380,84 @@ app.post("/api/midias", exigirLogin, async (req, res) => {
   }
 });
 
+app.patch("/api/midias/:id", exigirLogin, async (req, res) => {
+  const id = lerId(req.params.id);
+  if (id === undefined) {
+    res.status(400).json({ erro: "Informe um ID de mídia válido." });
+    return;
+  }
+
+  const validacao = validarNovaMidia(req.body);
+  if (!validacao.dados) {
+    res.status(400).json({ erro: validacao.erro });
+    return;
+  }
+
+  const midia = validacao.dados;
+  const conexao = await banco.getConnection();
+  try {
+    await conexao.beginTransaction();
+    const [existentes] = await conexao.execute<RowDataPacket[]>(
+      "SELECT Id FROM Midias WHERE Id = ? AND idUsuario = ? FOR UPDATE",
+      [id, usuarioDe(res)],
+    );
+    if (existentes.length === 0) {
+      await conexao.rollback();
+      res.status(404).json({ erro: `Mídia #${id} não encontrada.` });
+      return;
+    }
+
+    let generos: LinhaGenero[] = [];
+    if (midia.tags.length > 0) {
+      const placeholders = midia.tags.map(() => "?").join(", ");
+      const [linhas] = await conexao.execute<LinhaGenero[]>(
+        `SELECT Id AS id, Nome AS nome FROM Generos WHERE Nome IN (${placeholders})`,
+        midia.tags,
+      );
+      generos = linhas;
+
+      const encontrados = new Set(generos.map((genero) => genero.nome));
+      const inexistente = midia.tags.find((nome) => !encontrados.has(nome));
+      if (inexistente) {
+        await conexao.rollback();
+        res.status(400).json({ erro: `O gênero "${inexistente}" não existe.` });
+        return;
+      }
+    }
+
+    await conexao.execute(
+      "UPDATE Midias SET Titulo = ?, Status = ?, Tipo = ? WHERE Id = ? AND idUsuario = ?",
+      [midia.titulo, statusDoBanco(midia.status), tipoDoBanco(midia.tipo), id, usuarioDe(res)],
+    );
+    await conexao.execute("DELETE FROM MidiaGenero WHERE MidiaId = ?", [id]);
+    for (const genero of generos) {
+      await conexao.execute(
+        "INSERT INTO MidiaGenero (MidiaId, GeneroId) VALUES (?, ?)",
+        [id, genero.id],
+      );
+    }
+
+    const [linhas] = await conexao.execute<LinhaMidia[]>(`
+      ${SELECT_MIDIAS}
+      WHERE M.Id = ? AND M.idUsuario = ?
+      GROUP BY M.Id, M.Titulo, M.Status, M.Tipo
+    `, [id, usuarioDe(res)]);
+    if (!linhas[0]) {
+      throw new Error("A mídia foi atualizada, mas não pôde ser consultada.");
+    }
+
+    await conexao.commit();
+    res.json(mapearMidia(linhas[0]));
+  } catch (erro) {
+    await conexao.rollback().catch((erroRollback) => {
+      console.error("Erro ao desfazer a edição da mídia:", erroRollback);
+    });
+    throw erro;
+  } finally {
+    conexao.release();
+  }
+});
+
 app.patch("/api/midias/:id/status", exigirLogin, async (req, res) => {
   const id = lerId(req.params.id);
   if (id === undefined) {

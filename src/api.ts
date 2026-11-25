@@ -178,6 +178,11 @@ export async function alterarStatus(id: number, status: Status): Promise<void> {
   await enviar("PATCH", `/api/midias/${id}/status`, { status });
 }
 
+export async function editarMidia(id: number, dados: NovaMidia): Promise<Midia> {
+  const resposta = await enviar("PATCH", `/api/midias/${id}`, dados);
+  return converterMidia(await resposta.json());
+}
+
 export async function removerMidia(id: number): Promise<void> {
   await enviar("DELETE", `/api/midias/${id}`);
 }

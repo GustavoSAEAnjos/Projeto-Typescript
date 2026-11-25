@@ -1,16 +1,43 @@
 # Catálogo de filmes e séries
 
-Aplicação em TypeScript com uma interface Vite e uma API Express que consulta o MySQL do XAMPP. A API preserva o tema do catálogo e lê as tabelas `Midias`, `Generos` e `MidiaGenero`.
+Aplicação TypeScript com interface Vite, API Express e MySQL. Mantém o tema de catálogo pessoal de filmes e séries.
+
+## Estrutura
+
+- `index.html`: tela de login e catálogo.
+- `src/`: tipos, serviços e integração da página com a API.
+- `api/src/`: API, autenticação JWT e acesso ao MySQL.
+- `css/filmes.css`: estilos da interface.
+- `docs/SQL.md`: modelo e exemplos do banco.
+- `docs/banco.sql`: script completo para recriar o banco.
+- `docs/TaskFlow_Aula7_ALUNO.pdf`: documento da avaliação.
+- `docs/imagens/`: imagens do DER.
 
 ## Requisitos
 
-- Node.js 20.19+ e npm
-- MySQL/MariaDB do XAMPP iniciado
-- Banco `catalogomidias` existente, com as tabelas de mídias, gêneros e usuários já configuradas
+- Node.js 20.19 ou superior
+- npm
+- MySQL/MariaDB do XAMPP
 
-## Configuração
+## Configuração do banco
 
-Na raiz do projeto, copie `.env.example` para `.env` e ajuste as credenciais caso sejam diferentes das configurações padrão do XAMPP:
+1. Inicie o MySQL pelo XAMPP.
+2. Execute o script completo:
+
+```sh
+mysql -u root -p < docs/banco.sql
+```
+
+No Windows, execute o comando em um terminal aberto na raiz do projeto. O script cria o banco `catalogomidias`, as quatro tabelas, as restrições e os dados iniciais.
+
+Conta de demonstração criada pelo script:
+
+- E-mail: `demo@filmes.local`
+- Senha: `demo123`
+
+## Configuração da aplicação
+
+Copie `.env.exemplo` para `.env` e ajuste as credenciais:
 
 ```env
 DB_HOST=localhost
@@ -22,40 +49,40 @@ API_PORT=3000
 JWT_SEGREDO=gere-um-segredo-aleatorio-com-pelo-menos-32-caracteres
 ```
 
-Substitua `JWT_SEGREDO` por uma chave aleatória com pelo menos 32 caracteres. Você pode gerar uma com:
+O arquivo `.env` não é versionado e contém configurações locais. Gere um segredo com:
 
 ```sh
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-O arquivo `.env` é local e não deve ser enviado ao Git.
-
-## Executar
+## Instalação e execução
 
 ```sh
 npm install
 npm run dev
 ```
 
-O comando inicia a API em `http://localhost:3000` e a interface Vite em `http://localhost:5173` (ou na próxima porta disponível). A interface encaminha as chamadas `/api` para a API.
+A interface fica em `http://localhost:5173` e a API em `http://localhost:3000`.
 
-- `GET /api/midias` e `GET /api/midias/:id` consultam o catálogo.
-- `GET /api/generos` lista os gêneros disponíveis.
-- `POST /api/usuarios` cria uma conta; a coluna `usuarios.senha` guarda somente o hash bcrypt.
-- `POST /api/login` autentica e devolve um JWT com validade de 8 horas.
-- `GET /api/eu` devolve os dados públicos do usuário autenticado.
-- `POST /api/midias` cadastra uma mídia e seus gêneros.
-- `PATCH /api/midias/:id/status` atualiza o status.
-- `DELETE /api/midias/:id` remove a mídia e seus vínculos de gênero.
-- `GET /api/estatisticas` retorna a quantidade de mídias por status do usuário autenticado, utilizando `COUNT(*)` e `GROUP BY`.
-
-As rotas de mídia exigem login e filtram por `idUsuario`, que vem do token assinado — nunca do corpo enviado pelo navegador. A interface guarda o JWT no `localStorage`, envia o cabeçalho `Authorization: Bearer ...` e permite sair. Cadastro, atualização de status e remoção são persistidos antes de a interface atualizar a lista.
-
-O banco atual não tem índice `UNIQUE` para `usuarios.email`; a API verifica e-mails repetidos antes do cadastro, mas a garantia contra cadastros simultâneos depende de uma restrição única no banco. Nenhum schema é alterado pelo projeto.
-
-## Verificar e compilar
+## Verificação
 
 ```sh
 npm run verificar
 npm run build
 ```
+
+## Requisitos implementados
+
+- Quatro tabelas: `usuarios`, `Midias`, `Generos` e `MidiaGenero`, com chave estrangeira.
+- CHECK para status e tipo em `Midias`, UNIQUE para e-mail e gênero.
+- Cadastro/login com bcrypt e JWT.
+- CRUD completo de mídias persistido no MySQL.
+- Busca e filtros no navegador.
+- Painel com total, assistidos, assistindo e pendentes.
+- Consultas SQL com JOIN e GROUP BY.
+- SQL com parâmetros e transações nas operações relacionadas.
+- DER em `docs/imagens/diagrama.png` e `docs/diagrama-brModelo.brM3`.
+
+## Filtros no navegador e no SQL
+
+A busca por título e os filtros visuais são aplicados no navegador sobre os dados já carregados pela API: isso evita requisições a cada tecla e permite respostas imediatas. A proteção e a contagem por usuário são feitas no MySQL com `WHERE idUsuario = ?`, `JOIN` e `GROUP BY`, pois essa operação precisa usar os dados persistidos e impedir que um usuário acesse outro usuário. O filtro de busca de texto digitado não é enviado diretamente ao SQL.

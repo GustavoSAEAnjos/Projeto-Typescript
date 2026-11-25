@@ -24,7 +24,7 @@ Cada `Midias.idUsuario` identifica o dono da midia. Dessa forma, as consultas de
 | `email` | VARCHAR(80) | NOT NULL |
 | `senha` | TEXT | NOT NULL; guarda o hash bcrypt |
 
-Nao existe uma restricao UNIQUE para `email` no banco atual. A API verifica um e-mail existente antes do cadastro e trata `ER_DUP_ENTRY`, mas cadastros simultaneos exigiriam uma chave UNIQUE no banco para garantir essa regra completamente.
+O script `docs/banco.sql` cria uma restricao UNIQUE para `email` no banco. Ela impede duplicatas diretamente no banco; a API continua verificando e-mails antes do cadastro e trata `ER_DUP_ENTRY` como reforco.
 
 
 ### Midias
@@ -76,7 +76,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     nome VARCHAR(80) NOT NULL,
     email VARCHAR(80) NOT NULL,
     senha TEXT NOT NULL,
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_usuarios_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS Midias (
