@@ -23,13 +23,18 @@ Aplicação TypeScript com interface Vite, API Express e MySQL.
 1. Inicie o MySQL pelo XAMPP apertando em "Start" tanto na linha do Apache quanto na do MySQL:
     ![Imagem inicial do XAMPP](docs/imagens/xampp_inicial.png)
 
-2. Execute o script completo:
+2. Execute o script completo ou faça pela interface gráfica do XAMPP:
 
 ```sh
 mysql -u root -p < docs/catalogomidias.sql
 ```
 
-No Windows, execute o comando em um terminal aberto na raiz do projeto. O script cria o banco `catalogomidias`, as quatro tabelas, as restrições e os dados iniciais.
+Pela interface é: aperte em "Admin" na linha do "MySQL" vá em "Novo", depois vá em Importar e escolha o arquivo na pasta "docs" chamado catalogomidias.sql e desça a pagina por completo até chger no botão "Importar".
+![Imagem explicação no XAMPP](docs/imagens/xampp_instru.png)
+![Imagem explicação no PHPMyAdmin](docs/imagens/php.png)
+
+
+No Windows, execute o comando em um terminal aberto na raiz do projeto. O script (ou pela interface) cria o banco `catalogomidias`, as quatro tabelas, as restrições e os dados iniciais.
 
 Conta de demonstração criada pelo script:
 
